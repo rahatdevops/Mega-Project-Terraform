@@ -216,6 +216,8 @@ resource "aws_eks_node_group" "rahat" {
 resource "aws_eks_addon" "ebs_csi_driver" {
   cluster_name = aws_eks_cluster.rahat.name
   addon_name   = "aws-ebs-csi-driver"
+  addon_version   = "latest"
+  service_account_role_arn = aws_iam_role.ebs_csi.arn
 
   resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "OVERWRITE"
@@ -223,4 +225,11 @@ resource "aws_eks_addon" "ebs_csi_driver" {
   depends_on = [
     aws_eks_node_group.rahat
   ]
+
+
+timeout {
+    create = "40m"
+    update = "40m"
+    delete = "30m"
+  }
 }
