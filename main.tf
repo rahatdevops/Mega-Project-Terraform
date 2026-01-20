@@ -211,20 +211,40 @@ resource "aws_eks_node_group" "rahat" {
 }
 
 ########################
-# EBS CSI Addon
-########################
-resource "aws_eks_addon" "ebs_csi_driver" {
-  cluster_name = aws_eks_cluster.rahat.name
-  addon_name   = "aws-ebs-csi-driver"
+resource "aws_iam_role" "ebs_csi_sa_role" {
+  name = "rahat-ebs-csi-sa-role"
 
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "eks.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ebs_csi_policy" {
+  role       = aws_iam_role.ebs_csi_sa_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+}
+
+resource "aws_eks_addon" "ebs_csi_driver" {
+  cluster_name             = aws_eks_cluster.rahat.name
+  addon_name               = "aws-ebs-csi-driver"
+  service_account_role_arn = aws_iam_role.ebs_csi_sa_role.arn
 
   resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "OVERWRITE"
 
+  timeouts {
+    create = "40m"
+    update = "40m"
+    delete = "30m"
+  }
+
   depends_on = [
-    aws_eks_node_group.rahat
+    aws_eks_cluster.rahat
   ]
-
-
-
 }
+
